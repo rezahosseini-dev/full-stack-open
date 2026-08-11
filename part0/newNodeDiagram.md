@@ -1,10 +1,21 @@
 ```mermaid
-
 sequenceDiagram
     participant user
     participant browser
     participant server
-browser->>server: GET https://studies.cs.helsinki.fi/exampleapp/notes
+
+    user->>browser: write new note and click Save button
+    Note right of browser: browser get the user input and prepares to send it to the server
+
+    browser->>server: POST https://studies.cs.helsinki.fi/exampleapp/new_note with new data of note
+    activate server
+    Note right of server: server receive the new data of note and save it
+    server-->>browser: HTTP 302 and  redirect to /notes path
+    deactivate server
+
+    Note right of browser: browser follow the redirect path and reload the notes page
+
+    browser->>server: GET https://studies.cs.helsinki.fi/exampleapp/notes
     activate server
     server-->>browser: HTML document
     deactivate server
@@ -19,12 +30,14 @@ browser->>server: GET https://studies.cs.helsinki.fi/exampleapp/notes
     server-->>browser: the JavaScript file
     deactivate server
 
-    Note right of browser: The browser starts executing the JavaScript code that fetches the JSON from the server
+    Note right of browser: The browser start executing the JavaScript code that fetches the JSON file from the server
 
     browser->>server: GET https://studies.cs.helsinki.fi/exampleapp/data.json
     activate server
-    server-->>browser: [{ "content": "HTML is easy", "date": "2023-1-1" }, ... ]
+    server-->>browser: [{ "content": "HTML is easy", "date": "2023-1-1" }, { "content": "new note", "date": "2026-8-11" }, ... ]
     deactivate server
 
-    Note right of browser: The browser executes the callback function that renders the notes
+    Note right of browser: The browser execute the callback function that render the notes file and show in DOM
+
+
 ```
