@@ -1,9 +1,7 @@
-import { useState } from "react";
-import axios from "axios";
+import { useState, useEffect } from "react";
 import Filter from "./components/Filter";
 import PersonForm from "./components/PersonForm";
 import Persons from "./components/Persons";
-import { useEffect } from "react";
 import personServices from "./services/persons";
 import Notification from "./components/Notification";
 
@@ -13,20 +11,24 @@ const App = () => {
   const [newNumber, setNewNumber] = useState("");
   const [filter, setFilter] = useState("");
   const [notification, setNotification] = useState(null);
+
   useEffect(() => {
     personServices.getAll().then((initial) => {
       setPersons(initial);
     });
   }, []);
+
   const handleNewName = (event) => setNewName(event.target.value);
   const handleNewNumber = (event) => setNewNumber(event.target.value);
   const handleFilter = (event) => setFilter(event.target.value);
+
   const showNotification = (message, type = "success") => {
     setNotification({ message, type });
     setTimeout(() => {
       setNotification(null);
     }, 5000);
   };
+
   const addPerson = (event) => {
     event.preventDefault();
 
@@ -38,6 +40,7 @@ const App = () => {
       const confirmUpdate = window.confirm(
         `${nameExists.name} is already added to phonebook, replace the old number with a new one?`,
       );
+
       if (confirmUpdate) {
         const updatePerson = { ...nameExists, number: newNumber.trim() };
 
@@ -49,14 +52,22 @@ const App = () => {
             );
             setNewName("");
             setNewNumber("");
-            showNotification(`Updated ${changedNum.name} number`);
+            showNotification(`Updated ${changedNum.name}'s number`);
           })
           .catch((error) => {
-            showNotification(
-              `Information of '${nameExists.name}' has already been removed from server`,
-              "error",
-            );
-            setPersons(persons.filter((p) => p.id !== nameExists.id));
+            if (
+              error.response &&
+              error.response.data &&
+              error.response.data.error
+            ) {
+              showNotification(error.response.data.error, "error");
+            } else {
+              showNotification(
+                `Information of '${nameExists.name}' has already been removed from server`,
+                "error",
+              );
+              setPersons(persons.filter((p) => p.id !== nameExists.id));
+            }
           });
       }
       return;
@@ -66,20 +77,39 @@ const App = () => {
       name: newName.trim(),
       number: newNumber.trim(),
     };
-    personServices.create(personObject).then((newPerson) => {
-      setPersons(persons.concat(newPerson));
-      setNewName("");
-      setNewNumber("");
-      showNotification(`Added ${newPerson.name}`);
-    });
+
+    personServices
+      .create(personObject)
+      .then((newPerson) => {
+        setPersons(persons.concat(newPerson));
+        setNewName("");
+        setNewNumber("");
+        showNotification(`Added ${newPerson.name}`);
+      })
+      .catch((error) => {
+        const errorMessage =
+          error.response?.data?.error || "Failed to add person";
+        showNotification(errorMessage, "error");
+      });
   };
+
   const handleDelete = (id, name) => {
     if (window.confirm(`Delete ${name} ?`)) {
-      personServices.remove(id).then(() => {
-        setPersons(persons.filter((person) => person.id !== id));
-      });
+      personServices
+        .remove(id)
+        .then(() => {
+          setPersons(persons.filter((person) => person.id !== id));
+        })
+        .catch(() => {
+          showNotification(
+            `Information of '${name}' has already been removed from server`,
+            "error",
+          );
+          setPersons(persons.filter((person) => person.id !== id));
+        });
     }
   };
+
   const personsToShow =
     filter === ""
       ? persons
